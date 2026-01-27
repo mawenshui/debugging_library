@@ -1,0 +1,26 @@
+using System.Windows;
+
+namespace FieldKb.Client.Wpf;
+
+public partial class UserSettingsWindow : ThemedWindow
+{
+    public UserSettingsWindow()
+    {
+        InitializeComponent();
+        Loaded += OnLoaded;
+    }
+
+    private void OnLoaded(object sender, RoutedEventArgs e)
+    {
+        if (DataContext is not UserSettingsViewModel vm)
+        {
+            return;
+        }
+
+        vm.RequestClose += (_, ok) =>
+        {
+            DialogResult = ok;
+            Close();
+        };
+    }
+}

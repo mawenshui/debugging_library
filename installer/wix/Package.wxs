@@ -1,0 +1,60 @@
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs" xmlns:ui="http://wixtoolset.org/schemas/v4/wxs/ui">
+  <Package
+    Name="调试资料汇总平台"
+    Manufacturer="DebugSummaryPlatform"
+    Version="0.1.0"
+    UpgradeCode="8B7B4D29-7A8E-4504-AD4F-8F1FEF739F6B"
+    Language="2052"
+    Codepage="936"
+    Scope="perUser">
+
+    <SummaryInformation Codepage="936" />
+    <MajorUpgrade DowngradeErrorMessage="已安装更新版本。请先卸载后再安装旧版本。" />
+    <MediaTemplate EmbedCab="yes" CompressionLevel="high" />
+
+    <Icon Id="AppIcon.ico" SourceFile="..\..\src\FieldKb.Client.Wpf\Assets\App.ico" />
+    <Property Id="ARPPRODUCTICON" Value="AppIcon.ico" />
+
+    <StandardDirectory Id="LocalAppDataFolder">
+      <Directory Id="INSTALLFOLDER" Name="DebugSummaryPlatform" />
+    </StandardDirectory>
+
+    <StandardDirectory Id="ProgramMenuFolder">
+      <Directory Id="ApplicationProgramsFolder" Name="调试资料汇总平台" />
+    </StandardDirectory>
+
+    <StandardDirectory Id="DesktopFolder" />
+
+    <Feature Id="MainFeature" Title="调试资料汇总平台" Level="1">
+      <ComponentGroupRef Id="PublishedFiles" />
+      <ComponentRef Id="StartMenuShortcut" />
+    </Feature>
+
+    <Feature Id="DesktopShortcutFeature" Title="桌面快捷方式" Level="4">
+      <ComponentRef Id="DesktopShortcut" />
+    </Feature>
+
+    <WixVariable Id="WixUILicenseRtf" Value="License.rtf" />
+    <ui:WixUI Id="WixUI_InstallDir" InstallDirectory="INSTALLFOLDER" />
+    <UIRef Id="WixUI_ErrorProgressText" />
+  </Package>
+
+  <Fragment>
+    <Component Id="StartMenuShortcut" Directory="ApplicationProgramsFolder" Guid="4E49B2FA-3DAA-4335-9658-31B5AB4A2BB8">
+      <Shortcut Id="StartMenuShortcut"
+                Name="调试资料汇总平台"
+                Target="[INSTALLFOLDER]FieldKb.Client.Wpf.exe"
+                WorkingDirectory="INSTALLFOLDER" />
+      <RemoveFolder Id="RemoveApplicationProgramsFolder" Directory="ApplicationProgramsFolder" On="uninstall" />
+      <RegistryValue Root="HKCU" Key="Software\DebugSummaryPlatform" Name="StartMenuShortcut" Type="integer" Value="1" KeyPath="yes" />
+    </Component>
+
+    <Component Id="DesktopShortcut" Directory="DesktopFolder" Guid="D43BDE6B-2E64-4F6A-A6E7-BF9D7C3E4547">
+      <Shortcut Id="DesktopShortcut"
+                Name="调试资料汇总平台"
+                Target="[INSTALLFOLDER]FieldKb.Client.Wpf.exe"
+                WorkingDirectory="INSTALLFOLDER" />
+      <RegistryValue Root="HKCU" Key="Software\DebugSummaryPlatform" Name="DesktopShortcut" Type="integer" Value="1" KeyPath="yes" />
+    </Component>
+  </Fragment>
+</Wix>

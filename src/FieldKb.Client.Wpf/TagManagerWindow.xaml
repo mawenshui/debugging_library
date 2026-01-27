@@ -1,0 +1,54 @@
+<local:ThemedWindow x:Class="FieldKb.Client.Wpf.TagManagerWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:FieldKb.Client.Wpf"
+        mc:Ignorable="d"
+        Title="标签管理" Height="520" Width="720" WindowStartupLocation="CenterOwner">
+    <Grid Margin="16">
+        <Border Style="{StaticResource Card}" Padding="16">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+
+                <StackPanel>
+                    <TextBlock FontSize="18" FontWeight="SemiBold" Text="标签管理" />
+                    <TextBlock Margin="0,4,0,0" Foreground="{StaticResource Brush.SubText}" Text="用于问题录入与多标签筛选。" />
+                </StackPanel>
+
+                <Grid Grid.Row="1" Margin="0,14,0,0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="10" />
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="10" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <TextBox Height="38" Text="{Binding NewTagName, UpdateSourceTrigger=PropertyChanged}" />
+                    <Button Grid.Column="2" Style="{StaticResource Button.Outline}" Padding="12,8" Content="新增标签" Command="{Binding CreateTagCommand}" />
+                    <Button Grid.Column="4" Content="删除选中" Command="{Binding DeleteTagCommand}" />
+                </Grid>
+
+                <ListBox Grid.Row="2" Margin="0,12,0,0" ItemsSource="{Binding Tags}" SelectedItem="{Binding SelectedTag}">
+                    <ListBox.ItemTemplate>
+                        <DataTemplate>
+                            <StackPanel Margin="14,10">
+                                <TextBlock FontWeight="SemiBold" Text="{Binding Name}" />
+                                <TextBlock Foreground="{StaticResource Brush.SubText}" FontSize="12" Text="{Binding TagId}" />
+                            </StackPanel>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+
+                <Border Grid.Row="3" Margin="0,12,0,0" Style="{StaticResource GlassPanel}" CornerRadius="14" Padding="12">
+                    <TextBlock Foreground="{StaticResource Brush.SubText}" Text="{Binding StatusText}" />
+                </Border>
+            </Grid>
+        </Border>
+    </Grid>
+</local:ThemedWindow>

@@ -1,0 +1,104 @@
+<local:ThemedWindow x:Class="FieldKb.Client.Wpf.LanExchangeWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:local="clr-namespace:FieldKb.Client.Wpf"
+        Title="局域网交换" Height="680" Width="980" WindowStartupLocation="CenterOwner">
+    <Grid Background="{StaticResource Brush.BgBase}">
+        <Grid IsHitTestVisible="False">
+            <Rectangle Fill="{StaticResource Brush.BgBase}" />
+            <Rectangle Fill="{StaticResource Brush.BgAccent1}" />
+            <Rectangle Fill="{StaticResource Brush.BgAccent2}" />
+            <Rectangle Fill="{StaticResource Brush.BgAccent3}" />
+        </Grid>
+        <Grid Margin="14">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="*" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+
+            <Border Style="{StaticResource Card}" Padding="14">
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+
+                        <StackPanel>
+                            <TextBlock FontFamily="{StaticResource Font.Serif}" FontSize="18" FontWeight="SemiBold" Text="局域网交换" />
+                            <TextBlock Margin="0,4,0,0" Foreground="{StaticResource Brush.SubText}" TextWrapping="Wrap"
+                                       Text="通过局域网在个人端与总库之间交换离线包（支持增量/全量）。默认需要共享密钥鉴权。" />
+                        </StackPanel>
+
+                        <Grid Grid.Row="1" Margin="0,14,0,0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="14" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+
+                            <Border Style="{StaticResource GlassPanel}" CornerRadius="14" Padding="12">
+                                <StackPanel>
+                                    <TextBlock FontWeight="SemiBold" Text="本机服务" />
+                                    <TextBlock Margin="0,8,0,0" Foreground="{StaticResource Brush.SubText}" TextWrapping="Wrap" Text="{Binding LocalInfoText}" />
+                                    <TextBlock Margin="0,8,0,0" TextWrapping="Wrap" Text="{Binding LocalUrlsText}" />
+                                    <TextBlock Margin="0,8,0,0" Foreground="{StaticResource Brush.SubText}" TextWrapping="Wrap" Text="{Binding LocalAuthText}" />
+                                </StackPanel>
+                            </Border>
+
+                            <Border Grid.Column="2" Style="{StaticResource GlassPanel}" CornerRadius="14" Padding="12">
+                                <StackPanel>
+                                    <TextBlock FontWeight="SemiBold" Text="对端连接" />
+
+                                    <TextBlock Margin="0,10,0,0" FontWeight="SemiBold" Text="对端地址（host:port）" />
+                                    <TextBox Height="40" Margin="0,8,0,0" Text="{Binding RemoteBaseUrl, UpdateSourceTrigger=PropertyChanged}" />
+
+                                    <TextBlock Margin="0,12,0,0" FontWeight="SemiBold" Text="对端标识（RemoteInstanceId）" />
+                                    <TextBox Height="40" Margin="0,8,0,0" Text="{Binding RemoteInstanceId, UpdateSourceTrigger=PropertyChanged}" />
+
+                                    <TextBlock Margin="0,10,0,0" Foreground="{StaticResource Brush.SubText}" TextWrapping="Wrap"
+                                               Text="示例：对端地址 192.168.1.20:5123 ；对端标识用于增量水位（两端需一致配置）。" />
+                                </StackPanel>
+                            </Border>
+                        </Grid>
+
+                        <Border Grid.Row="2" Margin="0,14,0,0" Style="{StaticResource GlassPanel}" CornerRadius="14" Padding="12">
+                            <StackPanel>
+                                <TextBlock FontWeight="SemiBold" Text="交换方向" />
+                                <TextBlock Margin="0,8,0,0" Foreground="{StaticResource Brush.SubText}" TextWrapping="Wrap"
+                                           Text="拉取：从对端导出包并导入本机。推送：本机导出包并让对端直接导入（无需手动拷贝文件）。" />
+                            </StackPanel>
+                        </Border>
+                    </Grid>
+                </ScrollViewer>
+            </Border>
+
+            <Grid Grid.Row="1" Margin="0,14,0,0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="10" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="10" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="10" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="10" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="10" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+
+                <TextBlock VerticalAlignment="Center" Foreground="{StaticResource Brush.SubText}" Text="{Binding StatusText}" TextWrapping="Wrap" />
+                <Button Grid.Column="1" Width="120" Style="{StaticResource Button.Outline}" Content="测试连接" Command="{Binding PingCommand}" />
+                <Button Grid.Column="3" Width="150" Style="{StaticResource Button.Outline}" Content="拉取导入（增量）" Command="{Binding PullIncrementalCommand}" />
+                <Button Grid.Column="5" Width="150" Style="{StaticResource Button.Outline}" Content="拉取导入（全量）" Command="{Binding PullFullCommand}" />
+                <Button Grid.Column="7" Width="150" Style="{StaticResource Button.Outline}" Content="推送导入（增量）" Command="{Binding PushIncrementalCommand}" />
+                <Button Grid.Column="9" Width="150" Style="{StaticResource Button.Outline}" Content="推送导入（全量）" Command="{Binding PushFullCommand}" />
+                <Button Grid.Column="11" Width="100" Style="{StaticResource Button.Outline}" Content="关闭" Command="{Binding CloseCommand}" />
+            </Grid>
+        </Grid>
+    </Grid>
+</local:ThemedWindow>

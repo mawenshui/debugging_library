@@ -1,0 +1,52 @@
+<local:ThemedWindow x:Class="FieldKb.Client.Wpf.AboutWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:local="clr-namespace:FieldKb.Client.Wpf"
+        Title="关于" Height="360" Width="560" MinHeight="320" MinWidth="520" WindowStartupLocation="CenterOwner">
+    <Grid Background="{StaticResource Brush.BgBase}">
+        <Grid IsHitTestVisible="False">
+            <Rectangle Fill="{StaticResource Brush.BgBase}" />
+            <Rectangle Fill="{StaticResource Brush.BgAccent1}" />
+            <Rectangle Fill="{StaticResource Brush.BgAccent2}" />
+            <Rectangle Fill="{StaticResource Brush.BgAccent3}" />
+        </Grid>
+        <Grid Margin="14">
+            <Border Style="{StaticResource Card}">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+
+                    <TextBlock FontFamily="{StaticResource Font.Serif}" FontSize="18" FontWeight="SemiBold" Text="关于本软件" />
+
+                    <ScrollViewer Grid.Row="1" Margin="0,12,0,0" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="8" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="8" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="8" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="8" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+                            <TextBlock Text="{Binding AppName, StringFormat=名称：{0}}" TextWrapping="Wrap" />
+                            <TextBlock Grid.Row="2" Text="{Binding Version, StringFormat=版本：{0}}" TextWrapping="Wrap" />
+                            <TextBlock Grid.Row="4" Text="{Binding Author, StringFormat=作者：{0}}" TextWrapping="Wrap" />
+                            <TextBlock Grid.Row="6" Text="{Binding Runtime, StringFormat=运行时：{0}}" TextWrapping="Wrap" />
+                            <TextBlock Grid.Row="8" Text="{Binding Os, StringFormat=操作系统：{0}}" TextWrapping="Wrap" />
+                        </Grid>
+                    </ScrollViewer>
+
+                    <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,12,0,0">
+                        <Button Width="110" Content="关闭" Command="{Binding CloseCommand}" />
+                    </StackPanel>
+                </Grid>
+            </Border>
+        </Grid>
+    </Grid>
+</local:ThemedWindow>

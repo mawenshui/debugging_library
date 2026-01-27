@@ -1,0 +1,35 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="..\FieldKb.Application\FieldKb.Application.csproj" />
+    <ProjectReference Include="..\FieldKb.Infrastructure\FieldKb.Infrastructure.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.0" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="8.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Hosting" Version="8.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="config\**\*">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+    </Content>
+  </ItemGroup>
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UseWPF>true</UseWPF>
+    <ApplicationIcon>Assets\App.ico</ApplicationIcon>
+    <AssemblyTitle>调试资料汇总平台</AssemblyTitle>
+    <Product>调试资料汇总平台</Product>
+    <Description>用于调试问题汇总的离线优先资料平台：记录现象/原因/解决方案/环境信息，支持标签分类、全文检索、附件与导入导出。</Description>
+    <Company>Mawenshui</Company>
+    <Version>1.0.0</Version>
+  </PropertyGroup>
+
+</Project>

@@ -1,0 +1,71 @@
+<local:ThemedWindow x:Class="FieldKb.Client.Wpf.UserSettingsWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:FieldKb.Client.Wpf"
+        mc:Ignorable="d"
+        Title="设置" Height="420" Width="520" WindowStartupLocation="CenterOwner">
+    <Grid Margin="16">
+        <Border Style="{StaticResource Card}">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+
+                <StackPanel>
+                    <TextBlock FontSize="18" FontWeight="SemiBold" Text="设置" />
+                    <TextBlock Margin="0,4,0,0" Foreground="{StaticResource Brush.SubText}" Text="用于标记记录由哪个用户创建，并按职业提供不同模板。" />
+                </StackPanel>
+
+                <ScrollViewer Grid.Row="1" Margin="0,14,0,0" VerticalScrollBarVisibility="Auto">
+                    <StackPanel>
+                        <TextBlock FontWeight="SemiBold" Text="当前用户名称" />
+                        <TextBox Height="40" Margin="0,8,0,0"
+                                 Text="{Binding UserName, UpdateSourceTrigger=PropertyChanged, ValidatesOnNotifyDataErrors=True}" />
+
+                        <TextBlock Margin="0,10,0,0" Foreground="{StaticResource Brush.SubText}"
+                                   Text="限制：最长 32 字符；仅允许中文/字母/数字/空格/下划线/短横线/点。" TextWrapping="Wrap" />
+
+                        <TextBlock Margin="0,14,0,0" FontWeight="SemiBold" Text="职业/角色" />
+                        <ComboBox Height="40" Margin="0,8,0,0"
+                                  ItemsSource="{Binding ProfessionOptions}"
+                                  DisplayMemberPath="DisplayName"
+                                  SelectedValuePath="Id"
+                                  SelectedValue="{Binding ProfessionId, UpdateSourceTrigger=PropertyChanged, ValidatesOnNotifyDataErrors=True}" />
+
+                        <Button Margin="0,10,0,0" Style="{StaticResource Button.Outline}" Padding="12,8"
+                                Content="职业设置"
+                                Command="{Binding OpenProfessionSettingsCommand}" />
+
+                        <TextBlock Margin="0,10,0,0" Foreground="{StaticResource Brush.SubText}"
+                                   Text="提示：职业会影响新建问题时的环境字段模板（固定字段 6–8 + 其余自定义）。" TextWrapping="Wrap" />
+
+                        <TextBlock Margin="0,16,0,0" FontWeight="SemiBold" Text="安全" />
+                        <Button Margin="0,8,0,0" Style="{StaticResource Button.Outline}" Padding="12,8"
+                                Content="操作密码"
+                                Command="{Binding OpenOperationPasswordCommand}" />
+                        <TextBlock Margin="0,10,0,0" Foreground="{StaticResource Brush.SubText}"
+                                   Text="说明：操作密码用于执行批量删除等高危操作。本机仅保存密码哈希，不保存明文。" TextWrapping="Wrap" />
+
+                        <TextBlock Margin="0,16,0,0" FontWeight="SemiBold" Text="数据清理（危险）" />
+                        <Button Margin="0,8,0,0" Padding="12,8"
+                                Background="{StaticResource Brush.Danger}"
+                                Foreground="White"
+                                Content="批量删除问题"
+                                Command="{Binding OpenDataPurgeCommand}" />
+                        <TextBlock Margin="0,10,0,0" Foreground="{StaticResource Brush.SubText}"
+                                   Text="提示：此操作为物理删除，无法恢复。支持按职业/标签/更新时间范围筛选。" TextWrapping="Wrap" />
+                    </StackPanel>
+                </ScrollViewer>
+
+                <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,14,0,0">
+                    <Button Width="110" Margin="0,0,10,0" Style="{StaticResource Button.Outline}" Content="取消" Command="{Binding CancelCommand}"/>
+                    <Button Width="110" Content="保存" Command="{Binding SaveCommand}"/>
+                </StackPanel>
+            </Grid>
+        </Border>
+    </Grid>
+</local:ThemedWindow>
