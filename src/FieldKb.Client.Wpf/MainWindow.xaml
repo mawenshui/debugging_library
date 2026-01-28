@@ -160,13 +160,6 @@
                         </StackPanel>
                     </Button>
 
-                    <Button Margin="0,0,0,10" Style="{StaticResource Button.Toolbar}" Command="{Binding OneClickAddCommand}"
-                            ToolTip="测试：一键随机新增 10 条完整记录（含环境字段/标签/附件）">
-                        <StackPanel Orientation="Horizontal">
-                            <TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE109;" Margin="0,0,6,0" />
-                            <TextBlock Text="一键添加" />
-                        </StackPanel>
-                    </Button>
                 </WrapPanel>
             </Grid>
         </Border>

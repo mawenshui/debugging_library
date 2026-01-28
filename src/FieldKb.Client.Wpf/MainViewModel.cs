@@ -1,7 +1,6 @@
 using System.Diagnostics;
 using System.IO;
 using System.Collections.ObjectModel;
-using System.Text;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using FieldKb.Application.Abstractions;
@@ -89,7 +88,6 @@ public partial class MainViewModel : ObservableObject
         OpenConflictsCommand = new AsyncRelayCommand(OpenConflictsAsync);
         OpenAttachmentCommand = new RelayCommand<AttachmentItem?>(OpenAttachment);
         PreviewAttachmentCommand = new RelayCommand<AttachmentItem?>(PreviewAttachment);
-        OneClickAddCommand = new AsyncRelayCommand(OneClickAddAsync);
         ClearTagFiltersCommand = new RelayCommand(ClearTagFilters);
         OpenLogsCommand = new RelayCommand(OpenLogs);
         OpenAboutCommand = new RelayCommand(OpenAbout);
@@ -223,7 +221,6 @@ public partial class MainViewModel : ObservableObject
     public IAsyncRelayCommand OpenConflictsCommand { get; }
     public IRelayCommand<AttachmentItem?> OpenAttachmentCommand { get; }
     public IRelayCommand<AttachmentItem?> PreviewAttachmentCommand { get; }
-    public IAsyncRelayCommand OneClickAddCommand { get; }
     public IRelayCommand ClearTagFiltersCommand { get; }
     public IRelayCommand OpenLogsCommand { get; }
     public IRelayCommand OpenAboutCommand { get; }
@@ -863,94 +860,6 @@ public partial class MainViewModel : ObservableObject
         window.ShowDialog();
     }
 
-    private async Task OneClickAddAsync()
-    {
-        if (IsBusy)
-        {
-            return;
-        }
-
-        var updatedBy = string.IsNullOrWhiteSpace(LocalInstanceId) ? "unknown" : LocalInstanceId;
-        var createdBy = string.IsNullOrWhiteSpace(CurrentUserName) ? Environment.UserName : CurrentUserName;
-        var professionId = ProfessionIds.Normalize(_userContext.CurrentProfessionId);
-        var nowUtc = DateTimeOffset.UtcNow;
-        var rng = new Random(Guid.NewGuid().GetHashCode());
-
-        IsBusy = true;
-        try
-        {
-            var tags = await _store.GetAllTagsAsync(CancellationToken.None);
-            if (tags.Count == 0)
-            {
-                foreach (var name in new[] { "PLC", "网络", "相机", "性能", "紧急" })
-                {
-                    _ = await _store.CreateTagAsync(name, nowUtc, updatedBy, CancellationToken.None);
-                }
-
-                tags = await _store.GetAllTagsAsync(CancellationToken.None);
-            }
-
-            for (var i = 0; i < 10; i++)
-            {
-                var id = Guid.NewGuid().ToString("D");
-                var createdAt = nowUtc.AddSeconds(i);
-                var updatedAt = createdAt;
-
-                var title = BuildRandomTitle(rng);
-                var symptom = BuildRandomSymptom(rng);
-                var rootCause = BuildRandomRootCause(rng);
-                var solution = BuildRandomSolution(rng);
-
-                var env = BuildRandomStructuredEnvironment(rng);
-                var customEnv = BuildRandomCustomEnvironment(rng);
-                var environmentJson = EnvironmentJson.SetOrReplaceMeta(
-                    EnvironmentJson.FromStructuredAndCustom(env, customEnv),
-                    EnvironmentJson.KnownKeys.ProfessionId,
-                    professionId);
-
-                var problem = new Problem(
-                    Id: id,
-                    Title: title,
-                    Symptom: symptom,
-                    RootCause: rootCause,
-                    Solution: solution,
-                    EnvironmentJson: environmentJson,
-                    Severity: 0,
-                    Status: 0,
-                    CreatedAtUtc: createdAt,
-                    CreatedBy: createdBy,
-                    UpdatedAtUtc: updatedAt,
-                    UpdatedByInstanceId: updatedBy,
-                    IsDeleted: false,
-                    DeletedAtUtc: null,
-                    SourceKind: SourceKind.Personal);
-
-                await _store.UpsertProblemAsync(problem, CancellationToken.None);
-
-                var selectedTagIds = PickRandomTagIds(tags, rng);
-                if (selectedTagIds.Count > 0)
-                {
-                    await _store.SetTagsForProblemAsync(problem.Id, selectedTagIds, updatedAt, updatedBy, CancellationToken.None);
-                }
-
-                await AddRandomAttachmentAsync(problem.Id, title, createdAt, updatedBy, rng);
-            }
-
-            await RefreshTagsAsync(CancellationToken.None);
-            ResetAndSearch();
-            StatusText = "已一键新增 10 条随机记录。";
-        }
-        catch (Exception ex)
-        {
-            StatusText = $"一键添加失败：{ex.Message}";
-            _logger.LogError(ex, "一键添加失败。");
-        }
-        finally
-        {
-            IsBusy = false;
-        }
-    }
-
     private async Task RefreshTagsAsync(CancellationToken cancellationToken)
     {
         var tags = await DbBusyUiRetry.RunAsync(ct => _store.GetAllTagsAsync(ct), actionName: "刷新标签", ct: cancellationToken);
@@ -1093,150 +1002,6 @@ public partial class MainViewModel : ObservableObject
             };
             window.ShowDialog();
         });
-    }
-
-    private static IReadOnlyList<string> PickRandomTagIds(IReadOnlyList<Tag> tags, Random rng)
-    {
-        if (tags.Count == 0)
-        {
-            return Array.Empty<string>();
-        }
-
-        var count = rng.Next(0, Math.Min(4, tags.Count + 1));
-        if (count <= 0)
-        {
-            return Array.Empty<string>();
-        }
-
-        return tags
-            .OrderBy(_ => rng.Next())
-            .Take(count)
-            .Select(t => t.Id)
-            .ToArray();
-    }
-
-    private async Task AddRandomAttachmentAsync(string problemId, string title, DateTimeOffset nowUtc, string updatedBy, Random rng)
-    {
-        var tempDir = Path.Combine(Path.GetTempPath(), "FieldKb");
-        Directory.CreateDirectory(tempDir);
-
-        var fileName = $"note_{DateTime.Now:yyyyMMdd_HHmmss}_{rng.Next(1000, 9999)}.txt";
-        var tempPath = Path.Combine(tempDir, fileName);
-
-        try
-        {
-            var sb = new StringBuilder();
-            sb.AppendLine("FieldKb 自动生成测试附件");
-            sb.AppendLine($"标题：{title}");
-            sb.AppendLine($"生成时间（UTC）：{nowUtc:O}");
-            sb.AppendLine("说明：此文件由“一键添加”功能生成，用于测试附件预览/外部打开。");
-            await File.WriteAllTextAsync(tempPath, sb.ToString(), Encoding.UTF8);
-
-            await _store.AddAttachmentAsync(problemId, tempPath, nowUtc, updatedBy, CancellationToken.None);
-        }
-        finally
-        {
-            try
-            {
-                if (File.Exists(tempPath))
-                {
-                    File.Delete(tempPath);
-                }
-            }
-            catch
-            {
-            }
-        }
-    }
-
-    private static StructuredEnvironment BuildRandomStructuredEnvironment(Random rng)
-    {
-        var models = new[] { "FK-1200", "FK-2000", "FK-700", "FK-PLC", "FK-Vision" };
-        var versions = new[] { "2.1.8", "2.2.0", "2.0.5", "3.0.1" };
-        var workstations = new[] { "1 线 1 工位", "2 线 3 工位", "3 线 2 工位", "包装工位", "入库工位" };
-        var customers = new[] { "A 厂", "B 厂", "C 厂", "华东产线", "华南产线" };
-
-        var ip = $"192.168.{rng.Next(0, 5)}.{rng.Next(10, 240)}";
-        var port = rng.Next(1, 3) switch
-        {
-            1 => "502",
-            2 => "4840",
-            _ => rng.Next(1000, 9999).ToString()
-        };
-
-        return new StructuredEnvironment
-        {
-            DeviceModel = models[rng.Next(models.Length)],
-            DeviceVersion = versions[rng.Next(versions.Length)],
-            Workstation = workstations[rng.Next(workstations.Length)],
-            Customer = customers[rng.Next(customers.Length)],
-            IpAddress = ip,
-            Port = port
-        };
-    }
-
-    private static IReadOnlyList<EnvironmentEntry> BuildRandomCustomEnvironment(Random rng)
-    {
-        var keys = new[] { "站点", "项目", "产线", "设备编号", "PLC 型号", "PLC 固件", "HMI 型号", "HMI 版本", "操作系统", "应用版本", "网络", "备注" };
-        var values = new[]
-        {
-            "S1", "S2", "PJT-ALPHA", "PJT-BETA", "3 线", "5 线", "M-001", "M-039", "S7-1200", "S7-1500", "V1.02", "V2.15",
-            "Windows 10", "Windows 11", "LTE", "千兆交换机", "已加屏蔽线", "临时旁路验证"
-        };
-
-        var count = rng.Next(2, 6);
-        return keys
-            .OrderBy(_ => rng.Next())
-            .Take(count)
-            .Select(k => new EnvironmentEntry(k, values[rng.Next(values.Length)]))
-            .ToArray();
-    }
-
-    private static string BuildRandomTitle(Random rng)
-    {
-        var devices = new[] { "PLC", "相机", "机器人", "输送线", "数据库", "扫码枪", "视觉检测", "上位机" };
-        var symptoms = new[] { "偶发超时", "误判率上升", "启动失败", "卡顿", "丢包", "数据不同步", "闪断", "延迟过高" };
-        var suffix = $"{DateTime.Now:MMddHHmmss}-{rng.Next(100, 999)}";
-        return $"{devices[rng.Next(devices.Length)]}{symptoms[rng.Next(symptoms.Length)]}（{suffix}）";
-    }
-
-    private static string BuildRandomSymptom(Random rng)
-    {
-        var options = new[]
-        {
-            "现场运行一段时间后偶发报警，重启可短暂恢复。",
-            "切换工单后出现误判，低概率复现，日志中可见波动。",
-            "高峰期保存时卡顿明显，UI 无响应约 1–2 秒。",
-            "设备启动后 3 分钟内偶发丢包，随后恢复正常。",
-            "导入后部分记录未显示，刷新后偶尔出现。"
-        };
-        return options[rng.Next(options.Length)];
-    }
-
-    private static string BuildRandomRootCause(Random rng)
-    {
-        var options = new[]
-        {
-            "端口自动协商不稳定导致短时丢包；EMI 干扰叠加。",
-            "参数漂移导致阈值不匹配；现场光源老化。",
-            "数据库写入在 UI 线程同步执行，触发间歇阻塞。",
-            "网络环路/广播风暴导致瞬时延迟升高。",
-            "对端离线包版本较旧，引发合并跳过与冲突。"
-        };
-        return options[rng.Next(options.Length)];
-    }
-
-    private static string BuildRandomSolution(Random rng)
-    {
-        var options = new[]
-        {
-            "固定交换机端口速率/全双工；增加通讯重试；加装屏蔽与接地。",
-            "更换光源；锁定曝光/增益；增加白平衡校正并固化参数。",
-            "将写入迁移到后台任务；批量提交；避免 UI 线程阻塞。",
-            "检查网络拓扑，排除环路；启用 STP；限制广播。",
-            "在冲突中心人工决议；统一导入导出流程并校验水位。"
-        };
-        return options[rng.Next(options.Length)];
     }
 
     public sealed record ProblemSearchItem(string ProblemId, string Title, string? Snippet, double Score);
