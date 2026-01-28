@@ -16,7 +16,7 @@ public sealed class InstanceIdentityProvider
 
     public async Task<InstanceIdentity> GetOrCreateAsync(InstanceKind kind, CancellationToken cancellationToken)
     {
-        var dir = _baseDirectory ?? AppDataPaths.GetAppDataDirectory();
+        var dir = _baseDirectory ?? AppDataPaths.GetConfigDirectory();
         Directory.CreateDirectory(dir);
 
         var path = Path.Combine(dir, "instance.json");

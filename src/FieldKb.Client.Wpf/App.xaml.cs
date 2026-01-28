@@ -22,6 +22,8 @@ public partial class App : System.Windows.Application
     {
         base.OnStartup(e);
 
+        MigrateConfigIfNeeded();
+
         var logDir = AppDataPaths.GetLogsDirectory();
         Directory.CreateDirectory(logDir);
         var sessionLogPath = Path.Combine(logDir, $"FieldKb_{DateTimeOffset.Now:yyyyMMdd_HHmmss}.log");
@@ -32,6 +34,7 @@ public partial class App : System.Windows.Application
                 var configDir = AppDataPaths.GetConfigDirectory();
                 Directory.CreateDirectory(configDir);
 
+                config.AddJsonFile(AppDataPaths.GetDefaultAppSettingsPath(), optional: true, reloadOnChange: false);
                 config.AddJsonFile(AppDataPaths.GetAppSettingsPath(), optional: true, reloadOnChange: false);
             })
             .ConfigureServices((context, services) =>
@@ -167,5 +170,78 @@ public partial class App : System.Windows.Application
         }
 
         base.OnExit(e);
+    }
+
+    private static void MigrateConfigIfNeeded()
+    {
+        var configDir = AppDataPaths.GetConfigDirectory();
+        Directory.CreateDirectory(configDir);
+
+        var userSettingsPath = AppDataPaths.GetAppSettingsPath();
+        if (!File.Exists(userSettingsPath))
+        {
+            var legacySettingsPath = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                "FieldKb",
+                "config",
+                "appsettings.json");
+            if (File.Exists(legacySettingsPath))
+            {
+                File.Copy(legacySettingsPath, userSettingsPath, overwrite: false);
+            }
+        }
+
+        var identityPath = Path.Combine(configDir, "instance.json");
+        if (!File.Exists(identityPath))
+        {
+            var legacyIdentityPath = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                "FieldKb",
+                "instance.json");
+            if (File.Exists(legacyIdentityPath))
+            {
+                File.Copy(legacyIdentityPath, identityPath, overwrite: false);
+            }
+        }
+
+        var dataDir = AppDataPaths.GetAppDataDirectory();
+        Directory.CreateDirectory(dataDir);
+        var dbPath = AppDataPaths.GetDatabasePath();
+        if (!File.Exists(dbPath))
+        {
+            var legacyDbPath = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                "FieldKb",
+                "kb.sqlite");
+            if (File.Exists(legacyDbPath))
+            {
+                File.Copy(legacyDbPath, dbPath, overwrite: false);
+            }
+        }
+
+        var attachmentsDir = AppDataPaths.GetAttachmentsDirectory();
+        if (!Directory.Exists(attachmentsDir))
+        {
+            var legacyAttachmentsDir = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                "FieldKb",
+                "attachments");
+            if (Directory.Exists(legacyAttachmentsDir))
+            {
+                CopyDirectory(legacyAttachmentsDir, attachmentsDir);
+            }
+        }
+    }
+
+    private static void CopyDirectory(string sourceDir, string targetDir)
+    {
+        Directory.CreateDirectory(targetDir);
+        foreach (var file in Directory.GetFiles(sourceDir, "*", SearchOption.AllDirectories))
+        {
+            var rel = Path.GetRelativePath(sourceDir, file);
+            var dest = Path.Combine(targetDir, rel);
+            Directory.CreateDirectory(Path.GetDirectoryName(dest)!);
+            File.Copy(file, dest, overwrite: false);
+        }
     }
 }

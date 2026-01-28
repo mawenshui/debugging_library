@@ -27,5 +27,7 @@
 
   <Target Name="PublishApp" BeforeTargets="HarvestDirectory">
     <Exec Command="dotnet publish &quot;$(PublishProject)&quot; -c $(Configuration) -r win-x64 --self-contained false -o &quot;$(PublishDir)&quot;" />
+    <Delete Files="$(PublishDir)\kb.sqlite;$(PublishDir)\config\instance.json;$(PublishDir)\config\appsettings.user.json;$(PublishDir)\data\kb.sqlite;$(PublishDir)\data\instance.json" ContinueOnError="true" />
+    <RemoveDir Directories="$(PublishDir)\data" ContinueOnError="true" />
   </Target>
 </Project>

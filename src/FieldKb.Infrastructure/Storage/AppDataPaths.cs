@@ -15,15 +15,19 @@ public static class AppDataPaths
         return Path.Combine(AppContext.BaseDirectory, "config");
     }
 
-    public static string GetAppSettingsPath()
+    public static string GetDefaultAppSettingsPath()
     {
         return Path.Combine(GetConfigDirectory(), "appsettings.json");
     }
 
     public static string GetAppDataDirectory()
     {
-        var baseDir = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
-        return Path.Combine(baseDir, "FieldKb");
+        return Path.Combine(AppContext.BaseDirectory, "data");
+    }
+
+    public static string GetAppSettingsPath()
+    {
+        return Path.Combine(GetConfigDirectory(), "appsettings.user.json");
     }
 
     public static string GetDatabasePath()

@@ -9,7 +9,7 @@
     Scope="perUser">
 
     <SummaryInformation Codepage="936" />
-    <MajorUpgrade DowngradeErrorMessage="已安装更新版本。请先卸载后再安装旧版本。" />
+    <MajorUpgrade DowngradeErrorMessage="已安装更新版本。请先卸载后再安装旧版本。" AllowSameVersionUpgrades="yes" />
     <MediaTemplate EmbedCab="yes" CompressionLevel="high" />
 
     <Icon Id="AppIcon.ico" SourceFile="..\..\src\FieldKb.Client.Wpf\Assets\App.ico" />
@@ -25,17 +25,17 @@
 
     <StandardDirectory Id="DesktopFolder" />
 
-    <Feature Id="MainFeature" Title="调试资料汇总平台" Level="1">
+    <Feature Id="MainFeature" Title="调试资料汇总平台" Level="1" Display="expand">
       <ComponentGroupRef Id="PublishedFiles" />
       <ComponentRef Id="StartMenuShortcut" />
-    </Feature>
 
-    <Feature Id="DesktopShortcutFeature" Title="桌面快捷方式" Level="4">
-      <ComponentRef Id="DesktopShortcut" />
+      <Feature Id="DesktopShortcutFeature" Title="桌面快捷方式" Level="1">
+        <ComponentRef Id="DesktopShortcut" />
+      </Feature>
     </Feature>
 
     <WixVariable Id="WixUILicenseRtf" Value="License.rtf" />
-    <ui:WixUI Id="WixUI_InstallDir" InstallDirectory="INSTALLFOLDER" />
+    <ui:WixUI Id="WixUI_Mondo" InstallDirectory="INSTALLFOLDER" />
     <UIRef Id="WixUI_ErrorProgressText" />
   </Package>
 
