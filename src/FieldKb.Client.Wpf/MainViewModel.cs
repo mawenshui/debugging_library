@@ -25,11 +25,13 @@ public partial class MainViewModel : ObservableObject
     private readonly ISpreadsheetImportService _spreadsheetImportService;
     private readonly InstanceIdentityProvider _identityProvider;
     private readonly LocalInstanceContext _localInstanceContext;
+    private readonly LanExchangeApiHost _lanExchangeApiHost;
     private readonly IUiDialogService _dialogService;
     private readonly IUserContext _userContext;
     private readonly IAppSettingsStore _appSettingsStore;
     private readonly IAppLogStore _logStore;
     private readonly ILogger<MainViewModel> _logger;
+    private readonly ILoggerFactory _loggerFactory;
     private CancellationTokenSource? _searchCts;
     private CancellationTokenSource? _statusTransientCts;
 
@@ -40,12 +42,14 @@ public partial class MainViewModel : ObservableObject
         ISpreadsheetImportService spreadsheetImportService,
         InstanceIdentityProvider identityProvider,
         LocalInstanceContext localInstanceContext,
+        LanExchangeApiHost lanExchangeApiHost,
         IUiDialogService dialogService,
         IConfiguration configuration,
         IUserContext userContext,
         IAppSettingsStore appSettingsStore,
         IAppLogStore logStore,
-        ILogger<MainViewModel> logger)
+        ILogger<MainViewModel> logger,
+        ILoggerFactory loggerFactory)
     {
         _store = store;
         _packageTransferService = packageTransferService;
@@ -53,11 +57,13 @@ public partial class MainViewModel : ObservableObject
         _spreadsheetImportService = spreadsheetImportService;
         _identityProvider = identityProvider;
         _localInstanceContext = localInstanceContext;
+        _lanExchangeApiHost = lanExchangeApiHost;
         _dialogService = dialogService;
         _userContext = userContext;
         _appSettingsStore = appSettingsStore;
         _logStore = logStore;
         _logger = logger;
+        _loggerFactory = loggerFactory;
 
         Results = new ObservableCollection<ProblemSearchItem>();
         TagFilters = new ObservableCollection<TagFilterItem>();
@@ -78,6 +84,7 @@ public partial class MainViewModel : ObservableObject
         SpreadsheetImportCommand = new AsyncRelayCommand(OpenSpreadsheetImportAsync);
         OpenSettingsCommand = new AsyncRelayCommand(OpenSettingsAsync);
         OpenTagManagerCommand = new AsyncRelayCommand(OpenTagManagerAsync);
+        OpenLanExchangeCommand = new AsyncRelayCommand(OpenLanExchangeAsync);
         AddAttachmentsCommand = new AsyncRelayCommand(AddAttachmentsAsync);
         OpenConflictsCommand = new AsyncRelayCommand(OpenConflictsAsync);
         OpenAttachmentCommand = new RelayCommand<AttachmentItem?>(OpenAttachment);
@@ -211,6 +218,7 @@ public partial class MainViewModel : ObservableObject
     public IAsyncRelayCommand SpreadsheetImportCommand { get; }
     public IAsyncRelayCommand OpenSettingsCommand { get; }
     public IAsyncRelayCommand OpenTagManagerCommand { get; }
+    public IAsyncRelayCommand OpenLanExchangeCommand { get; }
     public IAsyncRelayCommand AddAttachmentsCommand { get; }
     public IAsyncRelayCommand OpenConflictsCommand { get; }
     public IRelayCommand<AttachmentItem?> OpenAttachmentCommand { get; }
@@ -673,6 +681,34 @@ public partial class MainViewModel : ObservableObject
         window.ShowDialog();
         await RefreshTagsAsync(CancellationToken.None);
         ResetAndSearch();
+    }
+
+    private Task OpenLanExchangeAsync()
+    {
+        _logger.LogInformation("打开局域网交换窗口。");
+        var window = new LanExchangeWindow
+        {
+            Owner = System.Windows.Application.Current.MainWindow
+        };
+
+        void OnImported()
+        {
+            _ = RefreshTagsAsync(CancellationToken.None);
+            ResetAndSearch();
+        }
+
+        window.DataContext = new LanExchangeViewModel(
+            _lanExchangeApiHost,
+            _localInstanceContext,
+            _packageTransferService,
+            _loggerFactory.CreateLogger<LanExchangeViewModel>(),
+            localInstanceId: LocalInstanceId,
+            initialRemoteInstanceId: RemoteInstanceId,
+            close: () => window.Close(),
+            onImported: OnImported);
+
+        window.ShowDialog();
+        return Task.CompletedTask;
     }
 
     private async Task AddAttachmentsAsync()

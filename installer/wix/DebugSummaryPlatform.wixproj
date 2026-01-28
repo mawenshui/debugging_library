@@ -19,6 +19,8 @@
       <ComponentGroupName>PublishedFiles</ComponentGroupName>
       <DirectoryRefId>INSTALLFOLDER</DirectoryRefId>
       <SuppressRootDirectory>true</SuppressRootDirectory>
+      <SuppressCom>true</SuppressCom>
+      <SuppressRegistry>true</SuppressRegistry>
     </HarvestDirectory>
     <BindPath Include="$(PublishDir)" />
   </ItemGroup>

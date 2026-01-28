@@ -112,6 +112,14 @@
                         </StackPanel>
                     </Button>
 
+                    <Button Margin="0,0,10,10" Style="{StaticResource Button.Toolbar}" Command="{Binding OpenLanExchangeCommand}"
+                            ToolTip="局域网交换：拉取/推送导入离线包（支持增量/全量）">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE968;" Margin="0,0,6,0" />
+                            <TextBlock Text="局域网交换" />
+                        </StackPanel>
+                    </Button>
+
                     <Button Margin="0,0,10,10" Style="{StaticResource Button.Toolbar}" Command="{Binding OpenTagManagerCommand}"
                             ToolTip="管理标签：新增/删除">
                         <StackPanel Orientation="Horizontal">

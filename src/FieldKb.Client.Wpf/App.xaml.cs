@@ -61,6 +61,13 @@ public partial class App : System.Windows.Application
                 services.AddSingleton<IUiDialogService, WpfDialogService>();
                 services.AddSingleton<ProfessionProfileProvider>();
 
+                var lanPortText = context.Configuration["LanExchange:Port"];
+                var lanPort = int.TryParse(lanPortText, out var portParsed) ? portParsed : 5123;
+                var lanSharedKey = context.Configuration["LanExchange:SharedKey"];
+                services.AddSingleton(new LanExchangeOptions(lanPort, lanSharedKey));
+                services.AddSingleton<LanExchangeApiHost>();
+                services.AddHostedService(sp => sp.GetRequiredService<LanExchangeApiHost>());
+
                 var logWriter = new FileLogWriter(sessionLogPath);
                 var logStore = new AppLogStore(sessionLogPath);
                 services.AddSingleton<IAppLogStore>(logStore);

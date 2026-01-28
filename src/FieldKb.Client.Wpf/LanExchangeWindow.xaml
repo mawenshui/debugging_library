@@ -29,7 +29,7 @@
                         <StackPanel>
                             <TextBlock FontFamily="{StaticResource Font.Serif}" FontSize="18" FontWeight="SemiBold" Text="局域网交换" />
                             <TextBlock Margin="0,4,0,0" Foreground="{StaticResource Brush.SubText}" TextWrapping="Wrap"
-                                       Text="通过局域网在个人端与总库之间交换离线包（支持增量/全量）。默认需要共享密钥鉴权。" />
+                                       Text="通过局域网在个人端与总库之间交换离线包（支持增量/全量）。可配置共享密钥鉴权。" />
                         </StackPanel>
 
                         <Grid Grid.Row="1" Margin="0,14,0,0">
@@ -69,6 +69,54 @@
                                 <TextBlock FontWeight="SemiBold" Text="交换方向" />
                                 <TextBlock Margin="0,8,0,0" Foreground="{StaticResource Brush.SubText}" TextWrapping="Wrap"
                                            Text="拉取：从对端导出包并导入本机。推送：本机导出包并让对端直接导入（无需手动拷贝文件）。" />
+                            </StackPanel>
+                        </Border>
+
+                        <Border Grid.Row="3" Margin="0,14,0,0" Style="{StaticResource GlassPanel}" CornerRadius="14" Padding="12">
+                            <StackPanel>
+                                <TextBlock FontWeight="SemiBold" Text="使用说明（建议按步骤操作）" />
+
+                                <TextBlock Margin="0,8,0,0" TextWrapping="Wrap">
+                                    <Run Text="一、准备（两端都要做）" />
+                                    <LineBreak />
+                                    <Run Text="1) 两台电脑处于同一局域网；建议先用“测试连接”确认可达。" />
+                                    <LineBreak />
+                                    <Run Text="2) 确认对端程序已打开，并进入本页面（程序会在后台监听端口）。" />
+                                    <LineBreak />
+                                    <Run Text="3) 若启用共享密钥：两端在 config/appsettings.json 里将 LanExchange.SharedKey 设置为同一个非空值；否则保持为空表示不鉴权。" />
+                                </TextBlock>
+
+                                <TextBlock Margin="0,10,0,0" TextWrapping="Wrap">
+                                    <Run Text="二、填写连接信息" />
+                                    <LineBreak />
+                                    <Run Text="对端地址：填写对端的 host:port，例如 192.168.1.20:5123。" />
+                                    <LineBreak />
+                                    <Run Text="对端标识（RemoteInstanceId）：用于增量水位计算，两端应约定同一个值（例如 corporate / personal）。" />
+                                </TextBlock>
+
+                                <TextBlock Margin="0,10,0,0" TextWrapping="Wrap">
+                                    <Run Text="三、选择模式并执行" />
+                                    <LineBreak />
+                                    <Run Text="增量：只交换“对端增量水位之后新增/更新”的数据，适合日常同步。" />
+                                    <LineBreak />
+                                    <Run Text="全量：交换全量数据，适合首次同步/修复异常；数据量大时更慢。" />
+                                    <LineBreak />
+                                    <Run Text="拉取导入：从对端导出离线包并导入到本机。" />
+                                    <LineBreak />
+                                    <Run Text="推送导入：本机导出离线包并让对端直接导入（对端会产生导入记录）。" />
+                                </TextBlock>
+
+                                <TextBlock Margin="0,10,0,0" TextWrapping="Wrap" Foreground="{StaticResource Brush.SubText}">
+                                    <Run Text="常见问题：" />
+                                    <LineBreak />
+                                    <Run Text="1) 一直连接失败：检查对端地址是否写错、端口是否一致、Windows 防火墙是否拦截；可先互相 ping IP。" />
+                                    <LineBreak />
+                                    <Run Text="2) 鉴权失败：两端 SharedKey 不一致或一端为空一端非空。" />
+                                    <LineBreak />
+                                    <Run Text="3) 增量结果不符合预期：确认 RemoteInstanceId 是否两端一致；不确定时先做一次全量。" />
+                                    <LineBreak />
+                                    <Run Text="4) 导入出现冲突：请在“冲突中心”查看差异并决议（保留本地/采用导入）。" />
+                                </TextBlock>
                             </StackPanel>
                         </Border>
                     </Grid>
