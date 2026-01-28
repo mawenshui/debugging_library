@@ -6,6 +6,5 @@ public partial class MainWindow : ThemedWindow
     {
         InitializeComponent();
         DataContext = viewModel;
-        Loaded += async (_, _) => await viewModel.InitializeAsync(CancellationToken.None);
     }
 }
