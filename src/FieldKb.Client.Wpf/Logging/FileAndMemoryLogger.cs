@@ -1,3 +1,5 @@
+using System.Diagnostics;
+using System.Threading;
 using Microsoft.Extensions.Logging;
 
 namespace FieldKb.Client.Wpf;
@@ -43,6 +45,10 @@ public sealed class FileAndMemoryLogger : ILogger
 
         var message = formatter(state, exception);
         var ts = DateTimeOffset.Now;
+        var pid = Environment.ProcessId;
+        var tid = Environment.CurrentManagedThreadId;
+        var traceId = Activity.Current?.TraceId.ToString();
+        var spanId = Activity.Current?.SpanId.ToString();
 
         var scopeText = string.Empty;
         var scopeProvider = _scopeProviderAccessor();
@@ -61,7 +67,12 @@ public sealed class FileAndMemoryLogger : ILogger
         }
 
         var exceptionText = exception?.ToString();
-        var line = $"{ts:yyyy-MM-dd HH:mm:ss.fff} [{ToChineseLevel(logLevel)}] {_category}({eventId.Id}) {message}";
+        var line = $"{ts:yyyy-MM-dd HH:mm:ss.fff} [{ToChineseLevel(logLevel)}] pid={pid} tid={tid}";
+        if (!string.IsNullOrWhiteSpace(traceId))
+        {
+            line += $" trace={traceId} span={spanId}";
+        }
+        line += $" {_category}({eventId.Id}) {message}";
         if (!string.IsNullOrWhiteSpace(scopeText))
         {
             line += $" | {scopeText}";
@@ -96,4 +107,3 @@ public sealed class FileAndMemoryLogger : ILogger
         };
     }
 }
-

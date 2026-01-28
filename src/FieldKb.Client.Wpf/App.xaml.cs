@@ -20,6 +20,8 @@ namespace FieldKb.Client.Wpf;
 public partial class App : System.Windows.Application
 {
     private IHost? _host;
+    private BootstrapWindow? _bootstrapWindow;
+    private CancellationTokenSource? _startupCts;
     private static Mutex? _singleInstanceMutex;
     private static EventWaitHandle? _activateEvent;
     private static CancellationTokenSource? _singleInstanceCts;
@@ -28,6 +30,8 @@ public partial class App : System.Windows.Application
     protected override void OnStartup(StartupEventArgs e)
     {
         base.OnStartup(e);
+
+        TryAppendBootstrapLog("启动入口：OnStartup。");
 
         if (!EnsureSingleInstance())
         {
@@ -42,14 +46,107 @@ public partial class App : System.Windows.Application
             return;
         }
 
-        MigrateConfigIfNeeded();
+        try
+        {
+            _bootstrapWindow = new BootstrapWindow();
+            _bootstrapWindow.Show();
+            _bootstrapWindow.Activate();
+        }
+        catch (Exception ex)
+        {
+            TryAppendBootstrapLog($"启动失败：无法显示启动窗口。{ex.GetType().Name} {ex.Message}");
+            try
+            {
+                MessageBox.Show($"启动失败：无法显示启动窗口。\n\n{ex.Message}", "调试资料汇总平台");
+            }
+            catch
+            {
+            }
+            Environment.Exit(1);
+        }
 
-        var logDir = AppDataPaths.GetLogsDirectory();
-        Directory.CreateDirectory(logDir);
-        var sessionLogPath = Path.Combine(logDir, $"FieldKb_{DateTimeOffset.Now:yyyyMMdd_HHmmss}.log");
-        TryAppendBootstrapLog($"startup begin. log={sessionLogPath}");
+        _startupCts = new CancellationTokenSource();
+        _ = Task.Run(() => StartHostAndInitializeAsync(_startupCts.Token), CancellationToken.None);
+        _ = StartUiWatchdogAsync(_startupCts.Token);
+    }
 
-        _host = Host.CreateDefaultBuilder()
+    private async Task StartHostAndInitializeAsync(CancellationToken cancellationToken)
+    {
+        try
+        {
+            TryAppendBootstrapLog("启动流程：准备配置与数据目录。");
+            await Task.Run(MigrateConfigIfNeeded, cancellationToken);
+
+            var logDir = AppDataPaths.GetLogsDirectory();
+            Directory.CreateDirectory(logDir);
+            var sessionLogPath = Path.Combine(logDir, $"FieldKb_{DateTimeOffset.Now:yyyyMMdd_HHmmss}.log");
+            TryAppendBootstrapLog($"启动流程：准备日志。日志文件={sessionLogPath}");
+
+            var host = BuildHost(sessionLogPath);
+            _host = host;
+            host.Start();
+
+            var logger = host.Services.GetRequiredService<ILogger<App>>();
+            logger.LogInformation("日志文件：{Path}", sessionLogPath);
+            logger.LogInformation("数据库文件：{Path}", host.Services.GetRequiredService<SqliteOptions>().DatabasePath);
+            logger.LogInformation("附件目录：{Path}", AppDataPaths.GetAttachmentsDirectory());
+            logger.LogInformation("配置目录：{Path}", AppDataPaths.GetConfigDirectory());
+
+            await Dispatcher.InvokeAsync(() =>
+            {
+                DispatcherUnhandledException += (_, args) =>
+                {
+                    logger.LogError(args.Exception, "发生未处理 UI 异常。");
+                    args.Handled = true;
+                    TryAppendBootstrapLog($"未处理 UI 异常：{args.Exception.GetType().Name} {args.Exception.Message}");
+                    _ = Task.Run(() =>
+                    {
+                        Thread.Sleep(300);
+                        Environment.Exit(1);
+                    });
+                };
+            });
+
+            AppDomain.CurrentDomain.UnhandledException += (_, args) =>
+            {
+                if (args.ExceptionObject is Exception ex)
+                {
+                    logger.LogCritical(ex, "发生未处理异常，程序即将退出。");
+                }
+            };
+
+            await InitializeAndShowAsync(logger);
+
+            await Dispatcher.InvokeAsync(() =>
+            {
+                try
+                {
+                    _bootstrapWindow?.Close();
+                }
+                catch
+                {
+                }
+                _bootstrapWindow = null;
+            });
+        }
+        catch (Exception ex)
+        {
+            TryAppendBootstrapLog($"启动失败：{ex.GetType().Name} {ex.Message}");
+            try
+            {
+                await Dispatcher.InvokeAsync(() =>
+                    MessageBox.Show($"启动失败：{ex.Message}\n\n可查看 %TEMP%\\FieldKb_bootstrap.log 或 data\\logs 下最新日志。", "调试资料汇总平台"));
+            }
+            catch
+            {
+            }
+            Environment.Exit(1);
+        }
+    }
+
+    private static IHost BuildHost(string sessionLogPath)
+    {
+        return Host.CreateDefaultBuilder()
             .ConfigureAppConfiguration((context, config) =>
             {
                 var configDir = AppDataPaths.GetConfigDirectory();
@@ -99,6 +196,7 @@ public partial class App : System.Windows.Application
                 {
                     logging.ClearProviders();
                     logging.SetMinimumLevel(LogLevel.Information);
+                    logging.AddFilter("Microsoft", LogLevel.Warning);
                     logging.AddProvider(new FileAndMemoryLoggerProvider(logStore, logWriter, LogLevel.Information));
                 });
 
@@ -123,31 +221,6 @@ public partial class App : System.Windows.Application
                 services.AddSingleton<MainWindow>();
             })
             .Build();
-
-        _host.Start();
-
-        var logger = _host.Services.GetRequiredService<ILogger<App>>();
-        logger.LogInformation("日志文件：{Path}", sessionLogPath);
-        logger.LogInformation("数据库文件：{Path}", _host.Services.GetRequiredService<SqliteOptions>().DatabasePath);
-        logger.LogInformation("附件目录：{Path}", AppDataPaths.GetAttachmentsDirectory());
-        logger.LogInformation("配置目录：{Path}", AppDataPaths.GetConfigDirectory());
-
-        DispatcherUnhandledException += (_, args) =>
-        {
-            logger.LogError(args.Exception, "发生未处理 UI 异常。");
-            args.Handled = true;
-        };
-
-        AppDomain.CurrentDomain.UnhandledException += (_, args) =>
-        {
-            if (args.ExceptionObject is Exception ex)
-            {
-                logger.LogCritical(ex, "发生未处理异常，程序即将退出。");
-            }
-        };
-
-        _ = InitializeAndShowAsync(logger);
-        _ = StartUiWatchdogAsync();
     }
 
     private async Task InitializeAndShowAsync(ILogger logger)
@@ -161,6 +234,14 @@ public partial class App : System.Windows.Application
                 var mainWindow = _host!.Services.GetRequiredService<MainWindow>();
                 MainWindow = mainWindow;
                 mainWindow.Show();
+                try
+                {
+                    _bootstrapWindow?.Close();
+                }
+                catch
+                {
+                }
+                _bootstrapWindow = null;
                 if (Interlocked.Exchange(ref _pendingActivate, 0) == 1)
                 {
                     TryActivateWindow(mainWindow);
@@ -193,6 +274,28 @@ public partial class App : System.Windows.Application
 
     protected override void OnExit(ExitEventArgs e)
     {
+        try
+        {
+            _startupCts?.Cancel();
+        }
+        catch
+        {
+        }
+        finally
+        {
+            _startupCts?.Dispose();
+            _startupCts = null;
+        }
+
+        try
+        {
+            _bootstrapWindow?.Close();
+        }
+        catch
+        {
+        }
+        _bootstrapWindow = null;
+
         var host = _host;
         _host = null;
 
@@ -337,6 +440,7 @@ public partial class App : System.Windows.Application
             _singleInstanceMutex = new Mutex(initiallyOwned: true, name: mutexName, createdNew: out var createdNew);
             if (createdNew)
             {
+                TryAppendBootstrapLog("单例检查：已获取互斥锁。");
                 _activateEvent = new EventWaitHandle(false, EventResetMode.AutoReset, activateEventName);
                 _singleInstanceCts = new CancellationTokenSource();
                 _ = Task.Run(() => ActivationLoopAsync(_singleInstanceCts.Token), CancellationToken.None);
@@ -350,6 +454,7 @@ public partial class App : System.Windows.Application
         {
         }
 
+        TryAppendBootstrapLog("单例检查：检测到已有实例，发送激活信号。");
         TrySignalActivate(activateEventName);
         return false;
     }
@@ -360,9 +465,11 @@ public partial class App : System.Windows.Application
         {
             using var ev = EventWaitHandle.OpenExisting(activateEventName);
             ev.Set();
+            TryAppendBootstrapLog("单例激活：已发送激活信号。");
         }
         catch
         {
+            TryAppendBootstrapLog("单例激活：发送激活信号失败（可能无窗口或权限问题）。");
         }
     }
 
@@ -384,7 +491,15 @@ public partial class App : System.Windows.Application
 
                 await Current.Dispatcher.InvokeAsync(() =>
                 {
-                    var window = Current.MainWindow;
+                    Window? window = Current.MainWindow;
+                    if (window is null)
+                    {
+                        foreach (Window w in Current.Windows)
+                        {
+                            window = w;
+                            break;
+                        }
+                    }
                     if (window is null)
                     {
                         Interlocked.Exchange(ref _pendingActivate, 1);
@@ -402,53 +517,102 @@ public partial class App : System.Windows.Application
 
     private static void TryActivateWindow(Window window)
     {
-        if (!window.IsVisible)
+        if (System.Windows.Application.Current?.Dispatcher.HasShutdownStarted == true)
         {
-            window.Show();
+            return;
+        }
+        if (window.Dispatcher.HasShutdownStarted || window.Dispatcher.HasShutdownFinished)
+        {
+            return;
         }
 
-        if (window.WindowState == WindowState.Minimized)
+        try
         {
-            window.WindowState = WindowState.Normal;
-        }
+            if (!window.IsVisible)
+            {
+                window.Show();
+            }
 
-        window.Activate();
-        window.Topmost = true;
-        window.Topmost = false;
-        window.Focus();
+            if (window.WindowState == WindowState.Minimized)
+            {
+                window.WindowState = WindowState.Normal;
+            }
+
+            window.Activate();
+            window.Topmost = true;
+            window.Topmost = false;
+            window.Focus();
+        }
+        catch
+        {
+        }
     }
 
-    private static async Task StartUiWatchdogAsync()
+    private async Task StartUiWatchdogAsync(CancellationToken cancellationToken)
     {
         try
         {
-            await Task.Delay(TimeSpan.FromSeconds(15));
-            await Current.Dispatcher.InvokeAsync(() =>
+            await Task.Delay(TimeSpan.FromSeconds(15), cancellationToken);
+            await Dispatcher.InvokeAsync(() =>
             {
-                var w = Current.MainWindow;
-                if (w is null)
+                var w = MainWindow ?? _bootstrapWindow;
+                if (w is not null)
                 {
-                    Interlocked.Exchange(ref _pendingActivate, 1);
+                    TryActivateWindow(w);
                     return;
                 }
-                TryActivateWindow(w);
+
+                Interlocked.Exchange(ref _pendingActivate, 1);
             });
 
-            await Task.Delay(TimeSpan.FromSeconds(2));
-            var visible = false;
+            await Task.Delay(TimeSpan.FromSeconds(2), cancellationToken);
+            var mainVisible = false;
+            var bootstrapVisible = false;
             try
             {
-                visible = await Current.Dispatcher.InvokeAsync(() => Current.MainWindow?.IsVisible == true);
+                mainVisible = await Dispatcher.InvokeAsync(() => MainWindow?.IsVisible == true);
+                bootstrapVisible = await Dispatcher.InvokeAsync(() => _bootstrapWindow?.IsVisible == true);
             }
             catch
             {
             }
 
-            if (!visible)
+            if (mainVisible)
             {
-                TryAppendBootstrapLog("ui watchdog: no visible window, exiting.");
+                return;
+            }
+
+            if (!bootstrapVisible)
+            {
+                TryAppendBootstrapLog("窗口自检失败：超过阈值仍无可见窗口，进程将退出。");
+                Environment.Exit(2);
+                return;
+            }
+
+            await Task.Delay(TimeSpan.FromSeconds(45), cancellationToken);
+            try
+            {
+                mainVisible = await Dispatcher.InvokeAsync(() => MainWindow?.IsVisible == true);
+            }
+            catch
+            {
+            }
+
+            if (!mainVisible)
+            {
+                TryAppendBootstrapLog("启动超时：启动窗口可见，但主界面长期未显示，进程将退出。");
+                try
+                {
+                    MessageBox.Show("启动超时：已显示启动窗口，但主界面长时间未出现。\n\n程序将自动退出，请查看 data\\logs 或 %TEMP%\\FieldKb_bootstrap.log。", "调试资料汇总平台");
+                }
+                catch
+                {
+                }
                 Environment.Exit(2);
             }
+        }
+        catch (OperationCanceledException)
+        {
         }
         catch
         {

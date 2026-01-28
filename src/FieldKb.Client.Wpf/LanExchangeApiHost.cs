@@ -3,6 +3,7 @@ using System.Net;
 using System.Net.Sockets;
 using System.Text;
 using System.Text.Json;
+using System.Diagnostics;
 using FieldKb.Application.Abstractions;
 using FieldKb.Application.ImportExport;
 using FieldKb.Infrastructure.Storage;
@@ -71,6 +72,7 @@ public sealed class LanExchangeApiHost : IHostedService
 
     public async Task StopAsync(CancellationToken cancellationToken)
     {
+        _logger.LogInformation("局域网交换服务停止中：Port={Port}", _options.Port);
         try
         {
             _cts?.Cancel();
@@ -102,6 +104,7 @@ public sealed class LanExchangeApiHost : IHostedService
         _listener = null;
         _cts?.Dispose();
         _cts = null;
+        _logger.LogInformation("局域网交换服务已停止：Port={Port}", _options.Port);
     }
 
     private async Task AcceptLoopAsync(CancellationToken ct)
@@ -138,6 +141,8 @@ public sealed class LanExchangeApiHost : IHostedService
         client.NoDelay = true;
         client.ReceiveTimeout = 15_000;
         client.SendTimeout = 15_000;
+        var remote = client.Client.RemoteEndPoint?.ToString() ?? "unknown";
+        var sw = Stopwatch.StartNew();
 
         try
         {
@@ -148,8 +153,11 @@ public sealed class LanExchangeApiHost : IHostedService
                 return;
             }
 
+            _logger.LogInformation("局域网交换请求：{Remote} {Method} {Target}", remote, request.Method, request.Target);
+
             if (!TryAuthorize(request.Headers, out var unauthorizedBody))
             {
+                _logger.LogWarning("局域网交换鉴权失败：{Remote} {Method} {Target}", remote, request.Method, request.Target);
                 await WriteResponseAsync(stream, 401, "application/json; charset=utf-8", unauthorizedBody, ct);
                 return;
             }
@@ -166,6 +174,7 @@ public sealed class LanExchangeApiHost : IHostedService
                     instanceKind = _localInstanceContext.Kind.ToString()
                 });
                 await WriteResponseAsync(stream, 200, "application/json; charset=utf-8", body, ct);
+                _logger.LogInformation("局域网交换响应：{Remote} ping ok {ElapsedMs}ms", remote, sw.ElapsedMilliseconds);
                 return;
             }
 
@@ -175,6 +184,7 @@ public sealed class LanExchangeApiHost : IHostedService
                 if (string.IsNullOrWhiteSpace(remoteInstanceId))
                 {
                     await WriteResponseAsync(stream, 400, "application/json; charset=utf-8", JsonBytes(new { error = "remoteInstanceId is required" }), ct);
+                    _logger.LogWarning("局域网交换导出请求参数缺失：{Remote} remoteInstanceId 为空", remote);
                     return;
                 }
 
@@ -182,6 +192,7 @@ public sealed class LanExchangeApiHost : IHostedService
                 var mode = string.Equals(modeText, "incremental", StringComparison.OrdinalIgnoreCase) ? ExportMode.Incremental : ExportMode.Full;
 
                 var tempDir = CreateTempDirectory();
+                _logger.LogInformation("局域网交换导出开始：{Remote} 模式={Mode} 对端标识={RemoteId}", remote, mode, remoteInstanceId);
                 var result = await _packageTransferService.ExportAsync(
                     new ExportRequest(tempDir, remoteInstanceId, mode, UpdatedAfterUtc: null, Limit: null),
                     ct);
@@ -189,11 +200,13 @@ public sealed class LanExchangeApiHost : IHostedService
                 if (!File.Exists(result.PackagePath))
                 {
                     await WriteResponseAsync(stream, 500, "application/json; charset=utf-8", JsonBytes(new { error = "export failed" }), ct);
+                    _logger.LogError("局域网交换导出失败：{Remote} 未生成包文件", remote);
                     return;
                 }
 
                 var zip = await File.ReadAllBytesAsync(result.PackagePath, ct);
                 await WriteResponseAsync(stream, 200, "application/zip", zip, ct);
+                _logger.LogInformation("局域网交换导出完成：{Remote} 字节={Bytes} 用时={ElapsedMs}ms", remote, zip.Length, sw.ElapsedMilliseconds);
                 return;
             }
 
@@ -202,6 +215,7 @@ public sealed class LanExchangeApiHost : IHostedService
                 if (request.Body is null || request.Body.Length == 0)
                 {
                     await WriteResponseAsync(stream, 400, "application/json; charset=utf-8", JsonBytes(new { error = "empty body" }), ct);
+                    _logger.LogWarning("局域网交换导入失败：{Remote} 空请求体", remote);
                     return;
                 }
 
@@ -209,6 +223,7 @@ public sealed class LanExchangeApiHost : IHostedService
                 var zipPath = Path.Combine(tempDir, $"lan_{DateTimeOffset.UtcNow:yyyyMMdd_HHmmss}_{Guid.NewGuid():N}.zip");
                 await File.WriteAllBytesAsync(zipPath, request.Body, ct);
 
+                _logger.LogInformation("局域网交换导入开始：{Remote} 字节={Bytes}", remote, request.Body.Length);
                 var report = await _packageTransferService.ImportAsync(zipPath, ct);
                 var body = JsonBytes(new
                 {
@@ -218,14 +233,17 @@ public sealed class LanExchangeApiHost : IHostedService
                 });
 
                 await WriteResponseAsync(stream, 200, "application/json; charset=utf-8", body, ct);
+                _logger.LogInformation("局域网交换导入完成：{Remote} 导入={Imported} 跳过={Skipped} 冲突={Conflicts} 用时={ElapsedMs}ms",
+                    remote, report.ImportedCount, report.SkippedCount, report.ConflictCount, sw.ElapsedMilliseconds);
                 return;
             }
 
             await WriteResponseAsync(stream, 404, "application/json; charset=utf-8", JsonBytes(new { error = "not found" }), ct);
+            _logger.LogWarning("局域网交换 404：{Remote} {Method} {Target}", remote, request.Method, request.Target);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "局域网交换请求处理失败。");
+            _logger.LogError(ex, "局域网交换请求处理失败：{Remote} 用时={ElapsedMs}ms", remote, sw.ElapsedMilliseconds);
         }
     }
 

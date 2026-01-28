@@ -1,0 +1,26 @@
+<local:ThemedWindow x:Class="FieldKb.Client.Wpf.BootstrapWindow"
+                    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+                    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+                    xmlns:local="clr-namespace:FieldKb.Client.Wpf"
+                    mc:Ignorable="d"
+                    Title="调试资料汇总平台"
+                    Height="220"
+                    Width="420"
+                    WindowStartupLocation="CenterScreen"
+                    ResizeMode="NoResize">
+    <Grid Margin="18">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <TextBlock FontSize="18" FontWeight="SemiBold" Text="正在启动，请稍候…" />
+        <TextBlock Grid.Row="1" Margin="0,10,0,0" Foreground="{StaticResource Brush.SubText}" TextWrapping="Wrap"
+                   Text="如长时间无界面显示，可查看 data\\logs 下最新日志文件，或查看临时目录中的 FieldKb_bootstrap.log。" />
+
+        <ProgressBar Grid.Row="2" Height="10" Margin="0,18,0,0" IsIndeterminate="True" />
+    </Grid>
+</local:ThemedWindow>

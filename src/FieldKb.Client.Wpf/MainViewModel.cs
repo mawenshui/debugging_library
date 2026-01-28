@@ -230,8 +230,11 @@ public partial class MainViewModel : ObservableObject
     public async Task InitializeAsync(CancellationToken cancellationToken)
     {
         var identity = await _identityProvider.GetOrCreateAsync(_localInstanceContext.Kind, cancellationToken);
-        LocalInstanceId = identity.InstanceId;
-        Subtitle = $"{identity.Kind} / {identity.InstanceId}";
+        await System.Windows.Application.Current.Dispatcher.InvokeAsync(() =>
+        {
+            LocalInstanceId = identity.InstanceId;
+            Subtitle = $"{identity.Kind} / {identity.InstanceId}";
+        });
 
         await RefreshTagsAsync(cancellationToken);
         ResetAndSearch();
@@ -604,21 +607,27 @@ public partial class MainViewModel : ObservableObject
         IsBusy = true;
         try
         {
-            _logger.LogInformation("开始导入离线包：{Path}", path);
+            var fileInfo = new FileInfo(path);
+            var bytes = fileInfo.Exists ? fileInfo.Length : 0;
+            using var scope = _logger.BeginScope("离线导入 | 文件={File} | 大小={Bytes}B", path, bytes);
+            var sw = Stopwatch.StartNew();
+
+            _logger.LogInformation("开始导入离线包。");
             var report = await Task.Run(async () => await _packageTransferService.ImportAsync(path, CancellationToken.None), CancellationToken.None);
             var importedProblems = report.ProblemsImportedCount ?? report.ImportedCount;
             var skippedProblems = report.ProblemsSkippedCount ?? report.SkippedCount;
             var conflictProblems = report.ProblemsConflictCount ?? report.ConflictCount;
             StatusText = $"导入完成：问题 {importedProblems}，跳过 {skippedProblems}，冲突 {conflictProblems}。";
             _logger.LogInformation(
-                "导入完成：问题导入={ProblemsImported} 标签导入={TagsImported} 关联导入={ProblemTagsImported} 附件导入={AttachmentsImported} 总导入={Imported} 跳过={Skipped} 冲突={Conflicts}",
+                "导入完成：问题导入={ProblemsImported} 标签导入={TagsImported} 关联导入={ProblemTagsImported} 附件导入={AttachmentsImported} 总导入={Imported} 跳过={Skipped} 冲突={Conflicts} 用时={ElapsedMs}ms",
                 report.ProblemsImportedCount ?? 0,
                 report.TagsImportedCount ?? 0,
                 report.ProblemTagsImportedCount ?? 0,
                 report.AttachmentsImportedCount ?? 0,
                 report.ImportedCount,
                 report.SkippedCount,
-                report.ConflictCount);
+                report.ConflictCount,
+                sw.ElapsedMilliseconds);
             ResetAndSearch();
         }
         catch (Exception ex)
@@ -890,6 +899,13 @@ public partial class MainViewModel : ObservableObject
 
     private void ResetAndSearch()
     {
+        var dispatcher = System.Windows.Application.Current?.Dispatcher;
+        if (dispatcher is not null && !dispatcher.CheckAccess())
+        {
+            dispatcher.BeginInvoke(new Action(ResetAndSearch));
+            return;
+        }
+
         CurrentPage = 1;
         TriggerSearch();
         PrevPageCommand.NotifyCanExecuteChanged();
@@ -960,10 +976,15 @@ public partial class MainViewModel : ObservableObject
                 Mode: mode,
                 UpdatedAfterUtc: null,
                 Limit: null);
+            using var scope = _logger.BeginScope("离线导出 | 模式={Mode} | 对端标识={RemoteId} | 输出目录={Dir}", mode, RemoteInstanceId, dir);
+            var sw = Stopwatch.StartNew();
+            _logger.LogInformation("开始导出离线包。");
             var result = await Task.Run(async () => await _packageTransferService.ExportAsync(request, CancellationToken.None), CancellationToken.None);
 
             StatusText = $"导出完成：{result.PackagePath}";
-            _logger.LogInformation("导出完成：{Path}", result.PackagePath);
+            var fileInfo = new FileInfo(result.PackagePath);
+            var bytes = fileInfo.Exists ? fileInfo.Length : 0;
+            _logger.LogInformation("导出完成：{Path} 大小={Bytes}B 用时={ElapsedMs}ms", result.PackagePath, bytes, sw.ElapsedMilliseconds);
         }
         catch (Exception ex)
         {

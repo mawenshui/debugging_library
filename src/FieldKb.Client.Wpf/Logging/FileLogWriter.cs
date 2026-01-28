@@ -49,8 +49,22 @@ public sealed class FileLogWriter : IDisposable
     public void Dispose()
     {
         _channel.Writer.TryComplete();
-        _cts.Cancel();
-        _ = _worker.ContinueWith(static _ => { }, TaskScheduler.Default);
-        _cts.Dispose();
+
+        try
+        {
+            if (!_worker.Wait(TimeSpan.FromSeconds(3)))
+            {
+                _cts.Cancel();
+                _ = _worker.Wait(TimeSpan.FromSeconds(1));
+            }
+        }
+        catch
+        {
+        }
+        finally
+        {
+            _cts.Cancel();
+            _cts.Dispose();
+        }
     }
 }
