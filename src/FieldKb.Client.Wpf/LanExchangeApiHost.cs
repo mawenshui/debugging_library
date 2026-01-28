@@ -22,6 +22,7 @@ public sealed class LanExchangeApiHost : IHostedService
     private CancellationTokenSource? _cts;
     private Task? _acceptLoop;
     private string _instanceId = string.Empty;
+    private string? _sharedKey;
 
     public LanExchangeApiHost(
         LanExchangeOptions options,
@@ -35,11 +36,17 @@ public sealed class LanExchangeApiHost : IHostedService
         _identityProvider = identityProvider;
         _packageTransferService = packageTransferService;
         _logger = logger;
+        _sharedKey = NormalizeSharedKey(options.SharedKey);
     }
 
     public int Port => _options.Port;
 
-    public string? SharedKey => string.IsNullOrWhiteSpace(_options.SharedKey) ? null : _options.SharedKey;
+    public string? SharedKey => _sharedKey;
+
+    public void UpdateSharedKey(string? sharedKey)
+    {
+        _sharedKey = NormalizeSharedKey(sharedKey);
+    }
 
     public async Task StartAsync(CancellationToken cancellationToken)
     {
@@ -225,7 +232,8 @@ public sealed class LanExchangeApiHost : IHostedService
     private bool TryAuthorize(IReadOnlyDictionary<string, string> headers, out byte[] unauthorizedJson)
     {
         unauthorizedJson = JsonBytes(new { error = "unauthorized" });
-        if (SharedKey is null)
+        var required = SharedKey;
+        if (required is null)
         {
             return true;
         }
@@ -235,7 +243,7 @@ public sealed class LanExchangeApiHost : IHostedService
             return false;
         }
 
-        return string.Equals(provided, SharedKey, StringComparison.Ordinal);
+        return string.Equals(provided, required, StringComparison.Ordinal);
     }
 
     private static async Task<HttpRequestData?> ReadRequestAsync(NetworkStream stream, CancellationToken ct)
@@ -416,6 +424,12 @@ public sealed class LanExchangeApiHost : IHostedService
     }
 
     private static byte[] JsonBytes<T>(T value) => JsonSerializer.SerializeToUtf8Bytes(value);
+
+    private static string? NormalizeSharedKey(string? sharedKey)
+    {
+        var normalized = (sharedKey ?? string.Empty).Trim();
+        return string.IsNullOrWhiteSpace(normalized) ? null : normalized;
+    }
 
     private static string CreateTempDirectory()
     {

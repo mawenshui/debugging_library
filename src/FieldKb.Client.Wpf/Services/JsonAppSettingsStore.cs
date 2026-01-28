@@ -296,4 +296,51 @@ public sealed class JsonAppSettingsStore : IAppSettingsStore
         var json = root.ToJsonString(JsonOptions);
         await File.WriteAllTextAsync(_path, json, cancellationToken);
     }
+
+    public async Task<string?> ReadLanExchangeSharedKeyAsync(CancellationToken cancellationToken)
+    {
+        if (!File.Exists(_path))
+        {
+            return null;
+        }
+
+        await using var stream = File.OpenRead(_path);
+        var root = await JsonNode.ParseAsync(stream, cancellationToken: cancellationToken);
+        var key = root?["LanExchange"]?["SharedKey"]?.GetValue<string>();
+        return string.IsNullOrWhiteSpace(key) ? null : key;
+    }
+
+    public async Task WriteLanExchangeSharedKeyAsync(string? sharedKey, CancellationToken cancellationToken)
+    {
+        Directory.CreateDirectory(Path.GetDirectoryName(_path)!);
+
+        JsonNode root;
+        if (File.Exists(_path))
+        {
+            await using var readStream = File.OpenRead(_path);
+            root = (await JsonNode.ParseAsync(readStream, cancellationToken: cancellationToken)) ?? new JsonObject();
+        }
+        else
+        {
+            root = new JsonObject();
+        }
+
+        if (root is not JsonObject obj)
+        {
+            obj = new JsonObject();
+            root = obj;
+        }
+
+        if (obj["LanExchange"] is not JsonObject lanObj)
+        {
+            lanObj = new JsonObject();
+            obj["LanExchange"] = lanObj;
+        }
+
+        var normalized = (sharedKey ?? string.Empty).Trim();
+        lanObj["SharedKey"] = normalized;
+
+        var json = root.ToJsonString(JsonOptions);
+        await File.WriteAllTextAsync(_path, json, cancellationToken);
+    }
 }

@@ -74,6 +74,20 @@
 
                         <Border Grid.Row="3" Margin="0,14,0,0" Style="{StaticResource GlassPanel}" CornerRadius="14" Padding="12">
                             <StackPanel>
+                                <TextBlock FontWeight="SemiBold" Text="鉴权设置（本机）" />
+                                <TextBlock Margin="0,8,0,0" Foreground="{StaticResource Brush.SubText}" TextWrapping="Wrap"
+                                           Text="共享密钥用于防止同网段其他设备随意导出/导入。两端需设置相同的密钥才可互通。" />
+
+                                <CheckBox Margin="0,10,0,0" Content="启用共享密钥鉴权" IsChecked="{Binding AuthEnabled, UpdateSourceTrigger=PropertyChanged}" />
+
+                                <TextBlock Margin="0,10,0,0" FontWeight="SemiBold" Text="共享密钥" />
+                                <PasswordBox Height="40" Margin="0,8,0,0" IsEnabled="{Binding AuthEnabled}"
+                                             local:PasswordBoxBinding.BindPassword="True"
+                                             local:PasswordBoxBinding.BoundPassword="{Binding AuthSharedKey, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+
+                                <Button Width="140" Margin="0,10,0,0" HorizontalAlignment="Left" Style="{StaticResource Button.Outline}"
+                                        Content="保存并生效" Command="{Binding SaveAuthCommand}" />
+
                                 <TextBlock FontWeight="SemiBold" Text="使用说明（建议按步骤操作）" />
 
                                 <TextBlock Margin="0,8,0,0" TextWrapping="Wrap">
@@ -83,7 +97,7 @@
                                     <LineBreak />
                                     <Run Text="2) 确认对端程序已打开，并进入本页面（程序会在后台监听端口）。" />
                                     <LineBreak />
-                                    <Run Text="3) 若启用共享密钥：两端在 config\\appsettings.user.json（或默认 appsettings.json）里将 LanExchange.SharedKey 设置为同一个非空值；否则保持为空表示不鉴权。" />
+                                    <Run Text="3) 若启用共享密钥：在两端本页开启“启用共享密钥鉴权”，并将共享密钥设置为同一个非空值后点“保存并生效”。" />
                                 </TextBlock>
 
                                 <TextBlock Margin="0,10,0,0" TextWrapping="Wrap">

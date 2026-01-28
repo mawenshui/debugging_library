@@ -17,4 +17,8 @@ public interface IAppSettingsStore
     Task<OperationPasswordConfig?> ReadOperationPasswordAsync(CancellationToken cancellationToken);
 
     Task WriteOperationPasswordAsync(OperationPasswordConfig? passwordConfig, CancellationToken cancellationToken);
+
+    Task<string?> ReadLanExchangeSharedKeyAsync(CancellationToken cancellationToken);
+
+    Task WriteLanExchangeSharedKeyAsync(string? sharedKey, CancellationToken cancellationToken);
 }

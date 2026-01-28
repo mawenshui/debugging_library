@@ -15,6 +15,7 @@ public partial class LanExchangeViewModel : ObservableObject
     private readonly LanExchangeApiHost _apiHost;
     private readonly LocalInstanceContext _localInstanceContext;
     private readonly IPackageTransferService _packageTransferService;
+    private readonly IAppSettingsStore _appSettingsStore;
     private readonly ILogger<LanExchangeViewModel> _logger;
     private readonly Action _close;
     private readonly Action _onImported;
@@ -24,6 +25,7 @@ public partial class LanExchangeViewModel : ObservableObject
         LanExchangeApiHost apiHost,
         LocalInstanceContext localInstanceContext,
         IPackageTransferService packageTransferService,
+        IAppSettingsStore appSettingsStore,
         ILogger<LanExchangeViewModel> logger,
         string localInstanceId,
         string initialRemoteInstanceId,
@@ -33,12 +35,15 @@ public partial class LanExchangeViewModel : ObservableObject
         _apiHost = apiHost;
         _localInstanceContext = localInstanceContext;
         _packageTransferService = packageTransferService;
+        _appSettingsStore = appSettingsStore;
         _logger = logger;
         _localInstanceId = localInstanceId;
         _close = close;
         _onImported = onImported;
 
         RemoteInstanceId = string.IsNullOrWhiteSpace(initialRemoteInstanceId) ? "corporate" : initialRemoteInstanceId;
+        AuthEnabled = _apiHost.SharedKey is not null;
+        AuthSharedKey = _apiHost.SharedKey ?? string.Empty;
 
         UpdateLocalTexts();
     }
@@ -61,6 +66,12 @@ public partial class LanExchangeViewModel : ObservableObject
     [ObservableProperty]
     private string _localAuthText = string.Empty;
 
+    [ObservableProperty]
+    private bool _authEnabled;
+
+    [ObservableProperty]
+    private string _authSharedKey = string.Empty;
+
     [RelayCommand]
     private void Close()
     {
@@ -82,6 +93,30 @@ public partial class LanExchangeViewModel : ObservableObject
         catch (Exception ex)
         {
             StatusText = $"连接失败：{ex.Message}";
+        }
+    }
+
+    [RelayCommand]
+    private async Task SaveAuthAsync()
+    {
+        try
+        {
+            if (AuthEnabled && string.IsNullOrWhiteSpace(AuthSharedKey))
+            {
+                StatusText = "保存失败：已启用鉴权，但共享密钥为空。";
+                return;
+            }
+
+            var key = AuthEnabled ? AuthSharedKey.Trim() : string.Empty;
+            await _appSettingsStore.WriteLanExchangeSharedKeyAsync(key, CancellationToken.None);
+            _apiHost.UpdateSharedKey(key);
+            UpdateLocalTexts();
+            StatusText = AuthEnabled ? "鉴权设置已保存并生效（已启用共享密钥）。" : "鉴权设置已保存并生效（已关闭共享密钥）。";
+        }
+        catch (Exception ex)
+        {
+            StatusText = $"保存失败：{ex.Message}";
+            _logger.LogError(ex, "保存局域网鉴权设置失败。");
         }
     }
 

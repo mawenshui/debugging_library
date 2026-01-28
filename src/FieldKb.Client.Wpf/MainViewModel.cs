@@ -701,6 +701,7 @@ public partial class MainViewModel : ObservableObject
             _lanExchangeApiHost,
             _localInstanceContext,
             _packageTransferService,
+            _appSettingsStore,
             _loggerFactory.CreateLogger<LanExchangeViewModel>(),
             localInstanceId: LocalInstanceId,
             initialRemoteInstanceId: RemoteInstanceId,
