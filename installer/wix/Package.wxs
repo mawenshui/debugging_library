@@ -1,8 +1,8 @@
 <Wix xmlns="http://wixtoolset.org/schemas/v4/wxs" xmlns:ui="http://wixtoolset.org/schemas/v4/wxs/ui">
   <Package
     Name="调试资料汇总平台"
-    Manufacturer="DebugSummaryPlatform"
-    Version="0.1.0"
+    Manufacturer="马文水"
+    Version="1.0.3"
     UpgradeCode="8B7B4D29-7A8E-4504-AD4F-8F1FEF739F6B"
     Language="2052"
     Codepage="936"

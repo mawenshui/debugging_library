@@ -28,8 +28,12 @@
     <AssemblyTitle>调试资料汇总平台</AssemblyTitle>
     <Product>调试资料汇总平台</Product>
     <Description>用于调试问题汇总的离线优先资料平台：记录现象/原因/解决方案/环境信息，支持标签分类、全文检索、附件与导入导出。</Description>
-    <Company>Mawenshui</Company>
-    <Version>1.0.0</Version>
+    <Company>马文水</Company>
+    <Version>1.0.3</Version>
+    <AssemblyVersion>1.0.3.0</AssemblyVersion>
+    <FileVersion>1.0.3.0</FileVersion>
+    <InformationalVersion>1.0.3</InformationalVersion>
+    <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
   </PropertyGroup>
 
 </Project>

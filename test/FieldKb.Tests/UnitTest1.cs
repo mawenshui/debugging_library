@@ -176,7 +176,7 @@ public sealed class StorageAndPackageTests
                 Symptom: "startup error",
                 RootCause: "missing config",
                 Solution: "add config",
-                EnvironmentJson: "{\"__professionid\":\"software\",\"appVersion\":\"1.0.0\"}",
+                EnvironmentJson: "{\"__professionid\":\"software\",\"appVersion\":\"1.0.3\"}",
                 Severity: 0,
                 Status: 0,
                 CreatedAtUtc: now,

@@ -1,6 +1,11 @@
 [Setup]
 AppName=调试资料汇总平台
-AppVersion=0.1.0
+AppVersion=1.0.3
+AppPublisher=马文水
+VersionInfoCompany=马文水
+VersionInfoProductName=调试资料汇总平台
+VersionInfoProductVersion=1.0.3
+VersionInfoVersion=1.0.3.0
 DefaultDirName={localappdata}\Programs\DebugSummaryPlatform
 PrivilegesRequired=lowest
 DisableProgramGroupPage=yes
